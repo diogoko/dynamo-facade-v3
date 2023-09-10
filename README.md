@@ -79,6 +79,28 @@ df.scan('movies', { year: gt(2000) })
 
 Notice that the `ExpressionAttributeValues` and `ExpressionAttributeNames` options are built automatically for you.
 
+### Queries with duplicate attributes
+
+Sometimes there's a need to use the same attribute name more than once. It may happen when using the same attribute both in the key condition and in the filter expressions of a query. Other times, the same attribute needs to appear in multiple comparisons in the same filter, update condition, or condition check.
+
+As objects keys must be unique in JavaScript, you can also create expressions using arrays of `[key, value]` pairs (just like the result of `Object.entries`).
+
+This means you can safely do this:
+
+```js
+df.query(
+  'movies',
+  { actor: 'Sylvester Stallone', movie: begins_with('Rambo') },
+  {
+    filter: [
+      ['year', gt(1980)],
+      ['year', lt(1990)],
+      ['movie', contains('Blood')],
+    ],
+  }
+)
+```
+
 ### Extra options
 
 All commands accept an optional parameters object as their last argument. This way, you can use options from the original `*Command` classes.

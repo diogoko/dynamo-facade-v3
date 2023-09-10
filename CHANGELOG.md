@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - scanAll and queryAll functions to return paginated results
+- Support duplicate attributes in filters
 
 ## [1.0.0] - 2022-10-03
 ### Added
