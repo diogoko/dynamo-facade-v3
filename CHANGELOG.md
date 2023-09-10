@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- scanAll and queryAll functions to return paginated results
+
 ## [1.0.0] - 2022-10-03
 ### Added
 - First version based on dynamodb-facade-v2@2.0.0

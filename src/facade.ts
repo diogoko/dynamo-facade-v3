@@ -10,8 +10,10 @@ import {
   GetCommandInput,
   PutCommand,
   QueryCommand,
+  QueryCommandOutput,
   ScanCommand,
   ScanCommandInput,
+  ScanCommandOutput,
   TransactGetCommand,
   TransactGetCommandInput,
   TransactWriteCommand,
@@ -32,6 +34,30 @@ import {
   WriteRequest,
 } from '@aws-sdk/client-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+
+/**
+ * Represents the responses of multiple `query` operations.
+ */
+export interface MultiQueryOutput {
+  $metadata: Array<QueryCommandOutput['$metadata']>;
+  ConsumedCapacity: Array<QueryCommandOutput['ConsumedCapacity']>;
+  Count: Array<QueryCommandOutput['Count']>;
+  Items: Array<QueryCommandOutput['Items']>;
+  LastEvaluatedKey: Array<QueryCommandOutput['LastEvaluatedKey']>;
+  ScannedCount: Array<QueryCommandOutput['ScannedCount']>;
+}
+
+/**
+ * Represents the responses of multiple `scan` operations.
+ */
+export interface MultiScanOutput {
+  $metadata: Array<ScanCommandOutput['$metadata']>;
+  ConsumedCapacity: Array<ScanCommandOutput['ConsumedCapacity']>;
+  Count: Array<ScanCommandOutput['Count']>;
+  Items: Array<ScanCommandOutput['Items']>;
+  LastEvaluatedKey: Array<ScanCommandOutput['LastEvaluatedKey']>;
+  ScannedCount: Array<ScanCommandOutput['ScannedCount']>;
+}
 
 /**
  * Facade class for easy access to DynamoDB.
@@ -177,6 +203,49 @@ export default class DynamoFacade {
   }
 
   /**
+   * Repeatedly call `scan` until all paginated results are returned.
+   *
+   * @param tableName The name of the table containing the requested items; or, if you provide `IndexName` in the `options`, the name of the table to which that index belongs
+   * @param filter An object describing the comparisons used to generate `FilterExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
+   * @param options The options accepted by the original `ScanCommand` method
+   * @returns A response object with the same fields of the `scan` response as arrays (one item for each request made)
+   */
+  async scanAll(
+    tableName: string,
+    filter?: Record<string, NativeAttributeValue>,
+    options?: Partial<ScanCommandInput>
+  ) {
+    const response: MultiScanOutput = {
+      $metadata: [],
+      ConsumedCapacity: [],
+      Count: [],
+      Items: [],
+      LastEvaluatedKey: [],
+      ScannedCount: [],
+    };
+
+    let lastEvaluatedKey: ScanCommandOutput['LastEvaluatedKey'] = undefined;
+    let partialResponse: ScanCommandOutput | undefined = undefined;
+    do {
+      partialResponse = await this.scan(tableName, filter, {
+        ...options,
+        ExclusiveStartKey: lastEvaluatedKey,
+      });
+
+      response.$metadata.push(partialResponse.$metadata);
+      response.ConsumedCapacity.push(partialResponse.ConsumedCapacity);
+      response.Count.push(partialResponse.Count);
+      response.Items.push(partialResponse.Items);
+      response.LastEvaluatedKey.push(partialResponse.LastEvaluatedKey);
+      response.ScannedCount.push(partialResponse.ScannedCount);
+
+      lastEvaluatedKey = partialResponse.LastEvaluatedKey;
+    } while (partialResponse.LastEvaluatedKey);
+
+    return response;
+  }
+
+  /**
    * Directly access items from a table by primary key or a secondary index by delegating to `QueryCommand`.
    *
    * @example
@@ -197,6 +266,49 @@ export default class DynamoFacade {
     return this.client.send(
       new QueryCommand(commands.buildQuery(tableName, keyCondition, options))
     );
+  }
+
+  /**
+   * Repeatedly call `query` until all paginated results are returned.
+   *
+   * @param tableName The name of the table containing the requested items
+   * @param keyCondition An object describing the comparisons used to generate `KeyConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
+   * @param options The options accepted by the original `QueryCommand` class, plus an optional `filter` field that generates `FilterExpression`
+   * @returns A response object with the same fields of the `query` response as arrays (one item for each request made)
+   */
+  async queryAll(
+    tableName: string,
+    keyCondition: Record<string, NativeAttributeValue>,
+    options?: Partial<commands.FacadeQueryInput>
+  ) {
+    const response: MultiQueryOutput = {
+      $metadata: [],
+      ConsumedCapacity: [],
+      Count: [],
+      Items: [],
+      LastEvaluatedKey: [],
+      ScannedCount: [],
+    };
+
+    let lastEvaluatedKey: QueryCommandOutput['LastEvaluatedKey'] = undefined;
+    let partialResponse: QueryCommandOutput | undefined = undefined;
+    do {
+      partialResponse = await this.query(tableName, keyCondition, {
+        ...options,
+        ExclusiveStartKey: lastEvaluatedKey,
+      });
+
+      response.$metadata.push(partialResponse.$metadata);
+      response.ConsumedCapacity.push(partialResponse.ConsumedCapacity);
+      response.Count.push(partialResponse.Count);
+      response.Items.push(partialResponse.Items);
+      response.LastEvaluatedKey.push(partialResponse.LastEvaluatedKey);
+      response.ScannedCount.push(partialResponse.ScannedCount);
+
+      lastEvaluatedKey = partialResponse.LastEvaluatedKey;
+    } while (partialResponse.LastEvaluatedKey);
+
+    return response;
   }
 
   /**
