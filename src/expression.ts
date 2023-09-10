@@ -179,7 +179,10 @@ function buildExpressionItem(
   }
 }
 
-export function buildExpression(filter?: Filter): ExpressionInfo {
+export function buildExpression(
+  filter?: Filter,
+  nameProvider?: NameProvider
+): ExpressionInfo {
   if (!filter) {
     return {
       expression: '',
@@ -189,9 +192,9 @@ export function buildExpression(filter?: Filter): ExpressionInfo {
   }
 
   const entries = Array.isArray(filter) ? filter : Object.entries(filter);
-  const nameProvider = new NameProvider();
+  const effectiveNameProvider = nameProvider ?? new NameProvider();
   const items = entries.map(([k, v]) =>
-    buildExpressionItem(k, v, nameProvider)
+    buildExpressionItem(k, v, effectiveNameProvider)
   );
 
   return {

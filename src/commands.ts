@@ -26,6 +26,7 @@ import {
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import { Filter, buildExpression, buildUpdateExpression } from './expression';
 import { isObjectNotEmpty, optionalField } from './utils';
+import NameProvider from './name-provider';
 
 export interface FacadeQueryInput extends QueryCommandInput {
   /**
@@ -88,10 +89,12 @@ export function buildQuery(
   keyCondition: Filter,
   options?: Partial<FacadeQueryInput>
 ): QueryCommandInput {
-  const keyConditionInfo = buildExpression(keyCondition);
+  const nameProvider = new NameProvider();
+
+  const keyConditionInfo = buildExpression(keyCondition, nameProvider);
 
   const { filter, ...remainingOptions } = options ?? {};
-  const filterInfo = buildExpression(filter);
+  const filterInfo = buildExpression(filter, nameProvider);
 
   return {
     TableName: tableName,

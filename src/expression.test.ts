@@ -14,6 +14,7 @@ import {
   ne,
   size,
 } from './helpers';
+import NameProvider from './name-provider';
 
 describe('buildExpression', () => {
   describe('record filter', () => {
@@ -527,6 +528,33 @@ describe('buildExpression', () => {
           ':name': 'Test',
           ':age': 30,
           ':name_1': 'Other',
+        },
+        names: {
+          '#name': 'name',
+          '#age': 'age',
+        },
+      });
+    });
+
+    it('accepts equal comparison with existing name provider', () => {
+      const nameProvider = new NameProvider();
+      nameProvider.nextUnique('name');
+
+      const expr = buildExpression(
+        [
+          ['name', 'Test'],
+          ['age', 30],
+          ['name', 'Other'],
+        ],
+        nameProvider
+      );
+
+      expect(expr).toEqual({
+        expression: '#name = :name_1 and #age = :age and #name = :name_2',
+        values: {
+          ':name_1': 'Test',
+          ':age': 30,
+          ':name_2': 'Other',
         },
         names: {
           '#name': 'name',
