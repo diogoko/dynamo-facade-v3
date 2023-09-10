@@ -21,6 +21,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import * as commands from './commands';
 import DynamoFacade from './facade';
+import { Filter } from './expression';
 
 /**
  * Default options for `DynamoDBClient` initialization when calling this module's functions.
@@ -135,7 +136,7 @@ export function get(
  */
 export function scan(
   tableName: string,
-  filter?: Record<string, NativeAttributeValue>,
+  filter?: Filter,
   options?: Partial<ScanCommandInput>
 ) {
   return facade().scan(tableName, filter, options);
@@ -156,7 +157,7 @@ export function scan(
  */
 export function query(
   tableName: string,
-  keyCondition: Record<string, NativeAttributeValue>,
+  keyCondition: Filter,
   options?: Partial<commands.FacadeQueryInput>
 ) {
   return facade().query(tableName, keyCondition, options);

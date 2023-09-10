@@ -3,7 +3,9 @@ import {
   attribute_exists,
   attribute_not_exists,
   begins_with,
+  contains,
   gt,
+  lt,
 } from './helpers';
 import * as transactItem from './transact-item';
 import * as batchItem from './batch-item';
@@ -91,6 +93,34 @@ describe('buildQuery', () => {
     });
   });
 
+  it('creates command with filter with duplicate attributes', () => {
+    const command = commands.buildQuery(
+      'test',
+      { pk: '12345' },
+      {
+        filter: [
+          ['age', gt(20)],
+          ['age', lt(40)],
+        ],
+      }
+    );
+
+    expect(command).toEqual({
+      TableName: 'test',
+      KeyConditionExpression: '#pk = :pk',
+      FilterExpression: '#age > :age and #age < :age_1',
+      ExpressionAttributeNames: {
+        '#pk': 'pk',
+        '#age': 'age',
+      },
+      ExpressionAttributeValues: {
+        ':pk': '12345',
+        ':age': 20,
+        ':age_1': 40,
+      },
+    });
+  });
+
   it('creates command with complex key condition', () => {
     const command = commands.buildQuery('test', {
       pk: '12345',
@@ -110,6 +140,34 @@ describe('buildQuery', () => {
       },
     });
   });
+
+  it('creates command with same attribute in key condition and filter expression', () => {
+    const command = commands.buildQuery(
+      'test',
+      {
+        pk: '12345',
+        sk: begins_with('#CLIENTINFO'),
+      },
+      {
+        filter: { sk: contains('my_name') },
+      }
+    );
+
+    expect(command).toEqual({
+      TableName: 'test',
+      KeyConditionExpression: '#pk = :pk and begins_with(#sk, :sk)',
+      FilterExpression: 'contains(#sk, :sk_1)',
+      ExpressionAttributeNames: {
+        '#pk': 'pk',
+        '#sk': 'sk',
+      },
+      ExpressionAttributeValues: {
+        ':pk': '12345',
+        ':sk': '#CLIENTINFO',
+        ':sk_1': 'my_name',
+      },
+    });
+  });
 });
 
 describe('buildScan', () => {
@@ -124,6 +182,25 @@ describe('buildScan', () => {
       },
       ExpressionAttributeValues: {
         ':name': 'Joe',
+      },
+    });
+  });
+
+  it('creates command with duplicate attributes', () => {
+    const command = commands.buildScan('test', [
+      ['age', gt(20)],
+      ['age', lt(40)],
+    ]);
+
+    expect(command).toEqual({
+      TableName: 'test',
+      FilterExpression: '#age > :age and #age < :age_1',
+      ExpressionAttributeNames: {
+        '#age': 'age',
+      },
+      ExpressionAttributeValues: {
+        ':age': 20,
+        ':age_1': 40,
       },
     });
   });

@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import NameProvider from './name-provider';
+
+export type Filter =
+  | Record<string, NativeAttributeValue>
+  | Array<[string, NativeAttributeValue]>;
 
 export type ValuesMap = {
   [name: string]: any;
@@ -16,7 +21,10 @@ export interface ExpressionInfo {
 }
 
 export abstract class Comparison {
-  abstract toExpressionItem(name: string): ExpressionInfo;
+  abstract toExpressionItem(
+    name: string,
+    nameProvider: NameProvider
+  ): ExpressionInfo;
 }
 
 function prefixAttributes(o: any, prefix: string) {
@@ -36,11 +44,13 @@ export class SimpleComparison extends Comparison {
     this.value = value;
   }
 
-  toExpressionItem(name: string): ExpressionInfo {
+  toExpressionItem(name: string, nameProvider: NameProvider): ExpressionInfo {
+    const uniqueName = nameProvider.nextUnique(name);
+
     return {
-      expression: `#${name} ${this.operator} :${name}`,
+      expression: `#${name} ${this.operator} :${uniqueName}`,
       names: { [name]: name },
-      values: { [name]: this.value },
+      values: { [uniqueName]: this.value },
     };
   }
 }
@@ -56,16 +66,18 @@ export class FunctionComparison extends Comparison {
     this.value = value;
   }
 
-  toExpressionItem(name: string): ExpressionInfo {
+  toExpressionItem(name: string, nameProvider: NameProvider): ExpressionInfo {
+    const uniqueName = nameProvider.nextUnique(name);
+
     const expression =
       this.value === undefined
         ? `${this.fnName}(#${name})`
-        : `${this.fnName}(#${name}, :${name})`;
+        : `${this.fnName}(#${name}, :${uniqueName})`;
 
     return {
       expression,
       names: { [name]: name },
-      values: this.value === undefined ? {} : { [name]: this.value },
+      values: this.value === undefined ? {} : { [uniqueName]: this.value },
     };
   }
 }
@@ -78,9 +90,11 @@ export class InComparison extends Comparison {
     this.value = value;
   }
 
-  toExpressionItem(name: string): ExpressionInfo {
+  toExpressionItem(name: string, nameProvider: NameProvider): ExpressionInfo {
+    const uniqueName = nameProvider.nextUnique(name);
+
     const valueNames = [...Array(this.value.length).keys()].map(
-      (i) => `${name}_${i}`
+      (i) => `${uniqueName}_${i}`
     );
 
     return {
@@ -99,8 +113,11 @@ export class BetweenComparison extends Comparison {
     this.value = value;
   }
 
-  toExpressionItem(name: string): ExpressionInfo {
-    const names = [...Array(this.value.length)].map((_, i) => `${name}_${i}`);
+  toExpressionItem(name: string, nameProvider: NameProvider): ExpressionInfo {
+    const uniqueName = nameProvider.nextUnique(name);
+    const names = [...Array(this.value.length)].map(
+      (_, i) => `${uniqueName}_${i}`
+    );
 
     return {
       expression: `#${name} between ${names.map((n) => `:${n}`).join(' and ')}`,
@@ -118,16 +135,18 @@ export class SizeComparison extends Comparison {
     this.value = value;
   }
 
-  toExpressionItem(name: string): ExpressionInfo {
+  toExpressionItem(name: string, nameProvider: NameProvider): ExpressionInfo {
     let expression;
     if (typeof this.value === 'number') {
+      const uniqueName = nameProvider.nextUnique(name);
+
       return {
-        expression: `size(#${name}) = :${name}`,
+        expression: `size(#${name}) = :${uniqueName}`,
         names: { [name]: name },
-        values: { [name]: this.value },
+        values: { [uniqueName]: this.value },
       };
     } else {
-      const innerExpression = this.value.toExpressionItem(name);
+      const innerExpression = this.value.toExpressionItem(name, nameProvider);
       expression = innerExpression.expression.replace(
         `#${name}`,
         `size(#${name})`
@@ -142,20 +161,27 @@ export class SizeComparison extends Comparison {
   }
 }
 
-function buildExpressionItem(k: string, value: any): ExpressionInfo {
+function buildExpressionItem(
+  k: string,
+  value: any,
+  nameProvider: NameProvider
+): ExpressionInfo {
   if (value instanceof Comparison) {
-    return value.toExpressionItem(k);
+    return value.toExpressionItem(k, nameProvider);
   } else {
+    const uniqueK = nameProvider.nextUnique(k);
+
     return {
-      expression: `#${k} = :${k}`,
+      expression: `#${k} = :${uniqueK}`,
       names: { [k]: k },
-      values: { [k]: value },
+      values: { [uniqueK]: value },
     };
   }
 }
 
 export function buildExpression(
-  filter?: Record<string, NativeAttributeValue>
+  filter?: Filter,
+  nameProvider?: NameProvider
 ): ExpressionInfo {
   if (!filter) {
     return {
@@ -165,8 +191,10 @@ export function buildExpression(
     };
   }
 
-  const items = Object.entries(filter).map(([k, v]) =>
-    buildExpressionItem(k, v)
+  const entries = Array.isArray(filter) ? filter : Object.entries(filter);
+  const effectiveNameProvider = nameProvider ?? new NameProvider();
+  const items = entries.map(([k, v]) =>
+    buildExpressionItem(k, v, effectiveNameProvider)
   );
 
   return {
