@@ -34,6 +34,7 @@ import {
   WriteRequest,
 } from '@aws-sdk/client-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
+import { Filter } from './expression';
 
 /**
  * Represents the responses of multiple `query` operations.
@@ -194,7 +195,7 @@ export default class DynamoFacade {
    */
   scan(
     tableName: string,
-    filter?: Record<string, NativeAttributeValue>,
+    filter?: Filter,
     options?: Partial<ScanCommandInput>
   ) {
     return this.client.send(
@@ -212,7 +213,7 @@ export default class DynamoFacade {
    */
   async scanAll(
     tableName: string,
-    filter?: Record<string, NativeAttributeValue>,
+    filter?: Filter,
     options?: Partial<ScanCommandInput>
   ) {
     const response: MultiScanOutput = {
@@ -260,7 +261,7 @@ export default class DynamoFacade {
    */
   query(
     tableName: string,
-    keyCondition: Record<string, NativeAttributeValue>,
+    keyCondition: Filter,
     options?: Partial<commands.FacadeQueryInput>
   ) {
     return this.client.send(
@@ -278,7 +279,7 @@ export default class DynamoFacade {
    */
   async queryAll(
     tableName: string,
-    keyCondition: Record<string, NativeAttributeValue>,
+    keyCondition: Filter,
     options?: Partial<commands.FacadeQueryInput>
   ) {
     const response: MultiQueryOutput = {

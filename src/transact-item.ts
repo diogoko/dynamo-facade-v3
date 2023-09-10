@@ -9,26 +9,27 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 import * as commands from './commands';
+import { Filter } from './expression';
 
 export interface FacadePut extends Put {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 export interface FacadeUpdate extends Update {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 export interface FacadeDelete extends Delete {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 /**
@@ -65,7 +66,7 @@ export function get(
 export function conditionCheck(
   tableName: string,
   key: Record<string, NativeAttributeValue>,
-  condition: Record<string, NativeAttributeValue>,
+  condition: Filter,
   options?: Partial<ConditionCheck>
 ): Pick<TransactWriteItem, 'ConditionCheck'> {
   const command = commands.buildConditionCheck(

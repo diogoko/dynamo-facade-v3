@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
 
+export type Filter = Record<string, NativeAttributeValue>;
+
 export type ValuesMap = {
   [name: string]: any;
 };
@@ -154,9 +156,7 @@ function buildExpressionItem(k: string, value: any): ExpressionInfo {
   }
 }
 
-export function buildExpression(
-  filter?: Record<string, NativeAttributeValue>
-): ExpressionInfo {
+export function buildExpression(filter?: Filter): ExpressionInfo {
   if (!filter) {
     return {
       expression: '',

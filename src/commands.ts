@@ -24,35 +24,35 @@ import {
   UpdateCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import { NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { buildExpression, buildUpdateExpression } from './expression';
+import { Filter, buildExpression, buildUpdateExpression } from './expression';
 import { isObjectNotEmpty, optionalField } from './utils';
 
 export interface FacadeQueryInput extends QueryCommandInput {
   /**
    * An object describing the comparisons to generate `FilterExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  filter?: Record<string, NativeAttributeValue>;
+  filter?: Filter;
 }
 
 export interface FacadePutItemInput extends PutCommandInput {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 export interface FacadeUpdateItemInput extends UpdateCommandInput {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 export interface FacadeDeleteItemInput extends DeleteCommandInput {
   /**
    * An object describing the comparisons to generate `ConditionExpression`, `ExpressionAttributeNames`, and `ExpressionAttributeValues`
    */
-  condition?: Record<string, NativeAttributeValue>;
+  condition?: Filter;
 }
 
 /**
@@ -85,7 +85,7 @@ export function buildGet(
  */
 export function buildQuery(
   tableName: string,
-  keyCondition: Record<string, NativeAttributeValue>,
+  keyCondition: Filter,
   options?: Partial<FacadeQueryInput>
 ): QueryCommandInput {
   const keyConditionInfo = buildExpression(keyCondition);
@@ -119,7 +119,7 @@ export function buildQuery(
  */
 export function buildScan(
   tableName: string,
-  filter?: Record<string, NativeAttributeValue>,
+  filter?: Filter,
   options?: Partial<ScanCommandInput>
 ): ScanCommandInput {
   const filterInfo = buildExpression(filter);
@@ -260,7 +260,7 @@ export function buildDelete(
 export function buildConditionCheck(
   tableName: string,
   key: Record<string, NativeAttributeValue>,
-  condition: Record<string, NativeAttributeValue>,
+  condition: Filter,
   options?: Partial<ConditionCheck>
 ): ConditionCheck {
   const conditionInfo = buildExpression(condition);
