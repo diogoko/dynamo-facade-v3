@@ -165,9 +165,8 @@ export function buildExpression(filter?: Filter): ExpressionInfo {
     };
   }
 
-  const items = Object.entries(filter).map(([k, v]) =>
-    buildExpressionItem(k, v)
-  );
+  const entries = Array.isArray(filter) ? filter : Object.entries(filter);
+  const items = entries.map(([k, v]) => buildExpressionItem(k, v));
 
   return {
     expression: items.map((i) => i.expression).join(' and '),
