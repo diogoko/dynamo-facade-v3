@@ -26,7 +26,12 @@ npm install dynamo-facade-v3
 In the following examples, the `movies` table has a compound primary key (`actor` is the hash key, `movie` is the range key).
 
 ```js
+import { fromIni } from "@aws-sdk/credential-providers";
 import df, { between, gt, inList, transactWrite as tr } from 'dynamo-facade-v3';
+
+// Use credentials from ~/.aws/credentials
+df.defaults.credentials = fromIni({ profile: 'my_project' });
+df.defaults.region = 'us-east-1';
 
 // The returned value is the same one returned by DynamoDBDocumentClient.send()
 const response = await df.get('movies', { actor: 'Tom Hanks' });
